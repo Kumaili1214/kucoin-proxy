@@ -6,12 +6,15 @@ export default async function handler(req, res) {
 
   const url = `https://api.kucoin.com${targetPath}`;
 
-  const headers = {};
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (!['host', 'x-forwarded-for', 'x-real-ip', 'connection', 'content-length'].includes(key.toLowerCase())) {
-      headers[key] = value;
-    }
-  }
+  // KuCoin ke required headers ko exact format mein send karna
+  const headers = {
+    'Content-Type': 'application/json',
+    'KC-API-KEY': req.headers['kc-api-key'] || req.headers['KC-API-KEY'],
+    'KC-API-SIGN': req.headers['kc-api-sign'] || req.headers['KC-API-SIGN'],
+    'KC-API-PASSPHRASE': req.headers['kc-api-passphrase'] || req.headers['KC-API-PASSPHRASE'],
+    'KC-API-TIMESTAMP': req.headers['kc-api-timestamp'] || req.headers['KC-API-TIMESTAMP'],
+    'KC-API-KEY-VERSION': req.headers['kc-api-key-version'] || req.headers['KC-API-KEY-VERSION'] || '2'
+  };
 
   try {
     const fetchOptions = {
