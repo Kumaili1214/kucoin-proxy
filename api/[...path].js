@@ -1,18 +1,16 @@
 export default async function handler(req, res) {
-  // Catch-all path ko proper clean endpoint mein convert karna
-  const pathArray = req.query.path || [];
-  const subPath = Array.isArray(pathArray) ? pathArray.join('/') : pathArray;
-  const endpoint = `/api/${subPath}`;
+  // Client URL se path uthana
+  let rawPath = req.url ? req.url.split('?')[0] : '';
 
-  // Extra routing query parameters (jaise 'path') ko hata kar original query structure rakhna
-  const query = { ...req.query };
-  delete query.path;
-  const queryString = new URLSearchParams(query).toString();
-  const fullPath = endpoint + (queryString ? `?${queryString}` : '');
+  // Agar /api do dafa aa jaye (jaise /api/api/v1) to usay ek dafa kar dena
+  rawPath = rawPath.replace(/^(\/api)+/, '/api');
+  if (!rawPath.startsWith('/api')) {
+    rawPath = '/api' + rawPath;
+  }
 
-  const url = `https://api.kucoin.com${fullPath}`;
+  const url = `https://api.kucoin.com${rawPath}`;
 
-  // Headers forward karna
+  // Headers setup
   const headers = {
     'Content-Type': 'application/json',
     'KC-API-KEY': req.headers['kc-api-key'] || req.headers['KC-API-KEY'] || '',
