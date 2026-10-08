@@ -1,25 +1,29 @@
 export default async function handler(req, res) {
-  const targetUrl = 'https://api.kucoin.com' + req.url;
+  const pathArray = req.query.path || [];
+  const path = Array.isArray(pathArray) ? pathArray.join('/') : pathArray;
+  const url = `https://api.kucoin.com/api/${path}`;
 
   const headers = {};
-  const forwardHeaders = [
-    'kc-api-key', 'kc-api-sign', 'kc-api-passphrase',
-    'kc-api-timestamp', 'kc-api-key-version', 'content-type'
-  ];
-
-  forwardHeaders.forEach(h => {
-    if (req.headers[h]) headers[h] = req.headers[h];
-  });
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (!['host', 'x-forwarded-for', 'x-real-ip', 'connection'].includes(key.toLowerCase())) {
+      headers[key] = value;
+    }
+  }
 
   try {
-    const response = await fetch(targetUrl, {
+    const options = {
       method: req.method,
-      headers: headers,
-      body: ['POST', 'PUT', 'DELETE'].includes(req.method) ? JSON.stringify(req.body) : undefined
-    });
+      headers: headers
+    };
 
-    const data = await response.json();
-    res.status(response.status).json(data);
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method.toUpperCase()) && req.body) {
+      options.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const response = await fetch(url, options);
+    const data = await response.text();
+    
+    res.status(response.status).send(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
