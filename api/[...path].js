@@ -1,18 +1,24 @@
 export default async function handler(req, res) {
-  let targetPath = req.url || '';
-  if (!targetPath.startsWith('/api')) {
-    targetPath = '/api' + targetPath;
-  }
+  // Catch-all path ko proper clean endpoint mein convert karna
+  const pathArray = req.query.path || [];
+  const subPath = Array.isArray(pathArray) ? pathArray.join('/') : pathArray;
+  const endpoint = `/api/${subPath}`;
 
-  const url = `https://api.kucoin.com${targetPath}`;
+  // Extra routing query parameters (jaise 'path') ko hata kar original query structure rakhna
+  const query = { ...req.query };
+  delete query.path;
+  const queryString = new URLSearchParams(query).toString();
+  const fullPath = endpoint + (queryString ? `?${queryString}` : '');
 
-  // KuCoin ke required headers ko exact format mein send karna
+  const url = `https://api.kucoin.com${fullPath}`;
+
+  // Headers forward karna
   const headers = {
     'Content-Type': 'application/json',
-    'KC-API-KEY': req.headers['kc-api-key'] || req.headers['KC-API-KEY'],
-    'KC-API-SIGN': req.headers['kc-api-sign'] || req.headers['KC-API-SIGN'],
-    'KC-API-PASSPHRASE': req.headers['kc-api-passphrase'] || req.headers['KC-API-PASSPHRASE'],
-    'KC-API-TIMESTAMP': req.headers['kc-api-timestamp'] || req.headers['KC-API-TIMESTAMP'],
+    'KC-API-KEY': req.headers['kc-api-key'] || req.headers['KC-API-KEY'] || '',
+    'KC-API-SIGN': req.headers['kc-api-sign'] || req.headers['KC-API-SIGN'] || '',
+    'KC-API-PASSPHRASE': req.headers['kc-api-passphrase'] || req.headers['KC-API-PASSPHRASE'] || '',
+    'KC-API-TIMESTAMP': req.headers['kc-api-timestamp'] || req.headers['KC-API-TIMESTAMP'] || '',
     'KC-API-KEY-VERSION': req.headers['kc-api-key-version'] || req.headers['KC-API-KEY-VERSION'] || '2'
   };
 
